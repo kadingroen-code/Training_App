@@ -9,16 +9,18 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import PAIRSForm from '@/components/features/pairs/PAIRSForm'
 import PAIRSHistory from '@/components/features/pairs/PAIRSHistory'
-
-const ATHLETE_ID = 2 // TODO: Get from auth context
-const COACH_ID = 1 // TODO: Get from auth context
+import PAIRSChart from '@/components/features/pairs/PAIRSChart'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function PAIRSPage() {
+  const { user, isCoach } = useAuth()
+  const ATHLETE_ID = !isCoach ? user?.id || 2 : 2
+  const COACH_ID = isCoach ? user?.id || 1 : 1
+  
   const { toasts, showToast, removeToast } = useToast()
   const [logs, setLogs] = useState<PAIRSLog[]>([])
   const [loading, setLoading] = useState(true)
   const [alerts, setAlerts] = useState<Array<{ athlete: Athlete; log: PAIRSLog }>>([])
-  const [isCoach, setIsCoach] = useState(false) // TODO: Get from auth context
 
   useEffect(() => {
     loadData()
@@ -99,6 +101,7 @@ export default function PAIRSPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <PAIRSForm athleteId={ATHLETE_ID} onSuccess={loadData} />
+          <PAIRSChart logs={logs} />
           <PAIRSHistory logs={logs} />
         </div>
 

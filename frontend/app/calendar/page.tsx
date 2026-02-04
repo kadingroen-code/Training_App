@@ -12,10 +12,11 @@ import Modal from '@/components/ui/Modal'
 import Select from '@/components/ui/Select'
 import Input from '@/components/ui/Input'
 import { formatDate } from '@/lib/utils'
-
-const ATHLETE_ID = 2 // TODO: Get from auth context
+import { useAuth } from '@/hooks/useAuth'
 
 export default function CalendarPage() {
+  const { user, isCoach } = useAuth()
+  const ATHLETE_ID = !isCoach ? user?.id || 2 : 2
   const { toasts, showToast, removeToast } = useToast()
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(true)

@@ -10,11 +10,12 @@ import Card from '@/components/ui/Card'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import Badge from '@/components/ui/Badge'
 import { formatDateReadable } from '@/lib/utils'
-
-const COACH_ID = 1 // TODO: Get from auth context
-const ATHLETE_ID = 2 // TODO: Get from auth context
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Home() {
+  const { user, isCoach } = useAuth()
+  const COACH_ID = isCoach ? user?.id || 1 : 1
+  const ATHLETE_ID = !isCoach ? user?.id || 2 : 2
   const { toasts, showToast, removeToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({

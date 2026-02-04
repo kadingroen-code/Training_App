@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X, Activity, Users, Calendar, AlertCircle, Home } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
+import UserMenu from './UserMenu'
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
@@ -50,6 +52,9 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            <div className="ml-4">
+              <UserMenu />
+            </div>
           </div>
 
           {/* Mobile menu button */}
@@ -93,6 +98,9 @@ export default function Navbar() {
                   </Link>
                 )
               })}
+              <div className="px-4 py-3">
+                <UserMenu />
+              </div>
             </div>
           </div>
         )}

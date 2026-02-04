@@ -8,10 +8,11 @@ import Input from '@/components/ui/Input'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import Card from '@/components/ui/Card'
 import AthleteCard from '@/components/features/athletes/AthleteCard'
-
-const COACH_ID = 1 // TODO: Get from auth context
+import { useAuth } from '@/hooks/useAuth'
 
 export default function AthletesPage() {
+  const { user, isCoach } = useAuth()
+  const COACH_ID = isCoach ? user?.id || 1 : 1
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [profiles, setProfiles] = useState<Record<number, AthleteProfile>>({})
   const [filteredAthletes, setFilteredAthletes] = useState<Athlete[]>([])

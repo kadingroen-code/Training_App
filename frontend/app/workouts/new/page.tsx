@@ -2,16 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Save, Eye, ArrowLeft } from 'lucide-react'
-import { workoutApi, WorkoutTemplateCreate } from '@/lib/api'
+import { workoutApi } from '@/lib/api'
+import { workoutTemplateSchema, type WorkoutTemplateFormData } from '@/lib/validations'
 import { useToast, ToastContainer } from '@/components/ui/Toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Card from '@/components/ui/Card'
 import Link from 'next/link'
-
-const COACH_ID = 1 // TODO: Get from auth context
+import { useAuth } from '@/hooks/useAuth'
+import TemplateLibrary from '@/components/features/workouts/TemplateLibrary'
 
 const sports = [
   { value: 'running', label: 'Running' },
@@ -22,32 +25,40 @@ const sports = [
 
 export default function NewWorkoutPage() {
   const router = useRouter()
+  const { user, isCoach } = useAuth()
+  const COACH_ID = isCoach ? user?.id || 1 : 1
   const { toasts, showToast, removeToast } = useToast()
-  const [loading, setLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
-  const [formData, setFormData] = useState<WorkoutTemplateCreate>({
-    name: '',
-    description: '',
-    sport: 'running',
-    markdown_source: '',
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+    setValue,
+  } = useForm<WorkoutTemplateFormData>({
+    resolver: zodResolver(workoutTemplateSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      sport: 'running',
+      markdown_source: '',
+    },
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!formData.name.trim()) {
-      showToast('Workout name is required', 'error')
-      return
-    }
+  const markdownSource = watch('markdown_source')
+  const selectedSport = watch('sport')
 
-    if (!formData.sport) {
-      showToast('Sport is required', 'error')
-      return
-    }
+  const handleTemplateSelect = (template: any) => {
+    setValue('name', template.name)
+    setValue('description', template.description)
+    setValue('sport', template.sport)
+    setValue('markdown_source', template.markdown_source)
+  }
 
+  const onSubmit = async (data: WorkoutTemplateFormData) => {
     try {
-      setLoading(true)
-      const workout = await workoutApi.create(formData, COACH_ID)
+      const workout = await workoutApi.create(data, COACH_ID)
       showToast('Workout created successfully!', 'success')
       router.push(`/workouts/${workout.id}`)
     } catch (error) {
@@ -55,8 +66,6 @@ export default function NewWorkoutPage() {
         error instanceof Error ? error.message : 'Failed to create workout',
         'error'
       )
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -78,7 +87,7 @@ export default function NewWorkoutPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Form */}
           <div className="lg:col-span-2 space-y-6">
@@ -87,8 +96,8 @@ export default function NewWorkoutPage() {
               <div className="space-y-4">
                 <Input
                   label="Workout Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  {...register('name')}
+                  error={errors.name?.message}
                   required
                   placeholder="e.g., 5K Tempo Run"
                 />
@@ -96,8 +105,8 @@ export default function NewWorkoutPage() {
                 <Select
                   label="Sport"
                   options={sports}
-                  value={formData.sport}
-                  onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
+                  {...register('sport')}
+                  error={errors.sport?.message}
                   required
                 />
                 
@@ -106,12 +115,14 @@ export default function NewWorkoutPage() {
                     Description
                   </label>
                   <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    {...register('description')}
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Optional description of the workout"
                   />
+                  {errors.description && (
+                    <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                  )}
                 </div>
               </div>
             </Card>
@@ -133,7 +144,7 @@ export default function NewWorkoutPage() {
               {showPreview ? (
                 <div className="prose max-w-none p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <pre className="whitespace-pre-wrap font-mono text-sm">
-                    {formData.markdown_source || 'Enter markdown to see preview...'}
+                    {markdownSource || 'Enter markdown to see preview...'}
                   </pre>
                 </div>
               ) : (
@@ -145,19 +156,21 @@ export default function NewWorkoutPage() {
                     </span>
                   </label>
                   <textarea
-                    value={formData.markdown_source}
-                    onChange={(e) => setFormData({ ...formData, markdown_source: e.target.value })}
+                    {...register('markdown_source')}
                     rows={10}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                     placeholder="Enter workout structure in markdown format..."
                   />
+                  {errors.markdown_source && (
+                    <p className="mt-1 text-sm text-red-600">{errors.markdown_source.message}</p>
+                  )}
                 </div>
               )}
             </Card>
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <Card>
               <h3 className="text-lg font-semibold mb-4">Tips</h3>
               <ul className="space-y-3 text-sm text-gray-600">
@@ -175,6 +188,8 @@ export default function NewWorkoutPage() {
                 </li>
               </ul>
             </Card>
+
+            <TemplateLibrary sport={selectedSport} onSelect={handleTemplateSelect} />
           </div>
         </div>
 
@@ -185,7 +200,7 @@ export default function NewWorkoutPage() {
               Cancel
             </Button>
           </Link>
-          <Button type="submit" isLoading={loading}>
+          <Button type="submit" isLoading={isSubmitting}>
             <Save className="w-4 h-4 mr-2" />
             Create Workout
           </Button>

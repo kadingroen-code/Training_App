@@ -11,10 +11,11 @@ import Select from '@/components/ui/Select'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import WorkoutCard from '@/components/features/workouts/WorkoutCard'
 import Card from '@/components/ui/Card'
-
-const COACH_ID = 1 // TODO: Get from auth context
+import { useAuth } from '@/hooks/useAuth'
 
 export default function WorkoutsPage() {
+  const { user, isCoach } = useAuth()
+  const COACH_ID = isCoach ? user?.id || 1 : 1
   const [workouts, setWorkouts] = useState<WorkoutTemplate[]>([])
   const [filteredWorkouts, setFilteredWorkouts] = useState<WorkoutTemplate[]>([])
   const [loading, setLoading] = useState(true)

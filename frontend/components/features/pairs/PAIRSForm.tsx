@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Save } from 'lucide-react'
-import { pairsApi, PAIRSLogCreate } from '@/lib/api'
+import { pairsApi } from '@/lib/api'
+import { pairsLogSchema, type PAIRSLogFormData } from '@/lib/validations'
 import { useToast } from '@/components/ui/Toast'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -15,45 +17,39 @@ interface PAIRSFormProps {
 
 export default function PAIRSForm({ athleteId, onSuccess }: PAIRSFormProps) {
   const { showToast } = useToast()
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<PAIRSLogCreate>({
-    muscle_soreness: undefined,
-    joint_pain: undefined,
-    notes: '',
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<PAIRSLogFormData>({
+    resolver: zodResolver(pairsLogSchema),
+    defaultValues: {
+      muscle_soreness: undefined,
+      joint_pain: undefined,
+      notes: '',
+    },
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (formData.muscle_soreness === undefined && formData.joint_pain === undefined) {
-      showToast('Please provide at least one assessment value', 'error')
-      return
-    }
-
+  const onSubmit = async (data: PAIRSLogFormData) => {
     try {
-      setLoading(true)
-      await pairsApi.createLog(athleteId, formData)
+      await pairsApi.createLog(athleteId, data)
       showToast('PAIRS assessment logged successfully', 'success')
-      setFormData({
-        muscle_soreness: undefined,
-        joint_pain: undefined,
-        notes: '',
-      })
+      reset()
       onSuccess?.()
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : 'Failed to log assessment',
         'error'
       )
-    } finally {
-      setLoading(false)
     }
   }
 
   return (
     <Card>
       <h2 className="text-xl font-semibold mb-4">Log PAIRS Assessment</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -65,13 +61,8 @@ export default function PAIRSForm({ athleteId, onSuccess }: PAIRSFormProps) {
                 min="0"
                 max="10"
                 step="1"
-                value={formData.muscle_soreness?.toString() || ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    muscle_soreness: e.target.value ? parseInt(e.target.value) : undefined,
-                  })
-                }
+                {...register('muscle_soreness', { valueAsNumber: true })}
+                error={errors.muscle_soreness?.message}
                 placeholder="0-10"
               />
               <div className="flex items-center justify-between text-xs text-gray-500">
@@ -91,13 +82,8 @@ export default function PAIRSForm({ athleteId, onSuccess }: PAIRSFormProps) {
                 min="0"
                 max="10"
                 step="1"
-                value={formData.joint_pain?.toString() || ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    joint_pain: e.target.value ? parseInt(e.target.value) : undefined,
-                  })
-                }
+                {...register('joint_pain', { valueAsNumber: true })}
+                error={errors.joint_pain?.message}
                 placeholder="0-10"
               />
               <div className="flex items-center justify-between text-xs text-gray-500">
@@ -113,19 +99,21 @@ export default function PAIRSForm({ athleteId, onSuccess }: PAIRSFormProps) {
             Notes (Optional)
           </label>
           <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            {...register('notes')}
             rows={4}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Additional notes about your condition..."
             maxLength={1000}
           />
-          <div className="text-xs text-gray-500 mt-1">
-            {formData.notes?.length || 0} / 1000 characters
-          </div>
+          {errors.notes && (
+            <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
+          )}
+          {errors.root && (
+            <p className="mt-1 text-sm text-red-600">{errors.root.message}</p>
+          )}
         </div>
 
-        <Button type="submit" isLoading={loading} className="w-full md:w-auto">
+        <Button type="submit" isLoading={isSubmitting} className="w-full md:w-auto">
           <Save className="w-4 h-4 mr-2" />
           Log Assessment
         </Button>

@@ -15,11 +15,12 @@ import Select from '@/components/ui/Select'
 import WorkoutPreview from '@/components/features/workouts/WorkoutPreview'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
-
-const COACH_ID = 1 // TODO: Get from auth context
-const ATHLETE_ID = 2 // TODO: Get from auth context (for resolve preview)
+import { useAuth } from '@/hooks/useAuth'
 
 export default function WorkoutDetailPage() {
+  const { user, isCoach } = useAuth()
+  const COACH_ID = isCoach ? user?.id || 1 : 1
+  const ATHLETE_ID = !isCoach ? user?.id || 2 : 2
   const params = useParams()
   const router = useRouter()
   const workoutId = parseInt(params.id as string)

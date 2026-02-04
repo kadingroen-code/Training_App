@@ -3,7 +3,10 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import MobileNav from '@/components/layout/MobileNav'
+import NetworkStatus from '@/components/ui/NetworkStatus'
 import ErrorBoundaryWrapper from '@/components/layout/ErrorBoundaryWrapper'
+import Providers from '@/components/layout/Providers'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,11 +24,15 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ErrorBoundaryWrapper>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
+          <Providers>
+            <div className="flex flex-col min-h-screen">
+              <Navbar />
+              <NetworkStatus />
+              <main className="flex-grow pb-16 md:pb-0">{children}</main>
+              <Footer />
+              <MobileNav />
+            </div>
+          </Providers>
         </ErrorBoundaryWrapper>
       </body>
     </html>
