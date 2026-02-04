@@ -2,21 +2,21 @@
 PAIRS (Post-Activity Injury Risk Screening) API endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.models.pairs_log import PAIRSLog
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter()
 
 
 class PAIRSLogCreate(BaseModel):
-    calendar_event_id: Optional[int] = None
-    muscle_soreness: Optional[int] = None  # 0-10 scale
-    joint_pain: Optional[int] = None  # 0-10 scale
-    notes: Optional[str] = None
+    calendar_event_id: Optional[int] = Field(None, gt=0)
+    muscle_soreness: Optional[int] = Field(None, ge=0, le=10, description="Muscle soreness on 0-10 scale")
+    joint_pain: Optional[int] = Field(None, ge=0, le=10, description="Joint pain on 0-10 scale")
+    notes: Optional[str] = Field(None, max_length=1000)
 
 
 class PAIRSLogResponse(BaseModel):
@@ -34,8 +34,8 @@ class PAIRSLogResponse(BaseModel):
 
 @router.post("/", response_model=PAIRSLogResponse)
 async def create_pairs_log(
-    athlete_id: int,
     log_data: PAIRSLogCreate,
+    athlete_id: int = Query(..., gt=0),
     db: Session = Depends(get_db)
 ):
     """Create a PAIRS log entry for post-workout assessment."""
@@ -66,8 +66,8 @@ async def create_pairs_log(
 
 @router.get("/athlete/{athlete_id}", response_model=List[PAIRSLogResponse])
 async def get_athlete_pairs_logs(
-    athlete_id: int,
-    limit: int = 30,
+    athlete_id: int = Path(..., gt=0),
+    limit: int = Query(30, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     """Get PAIRS logs for an athlete."""
@@ -80,7 +80,7 @@ async def get_athlete_pairs_logs(
 
 @router.get("/alerts")
 async def get_pairs_alerts(
-    coach_id: int,  # TODO: Get from auth
+    coach_id: int = Query(..., gt=0, description="Coach ID (will be from auth token in production)"),
     db: Session = Depends(get_db)
 ):
     """Get all PAIRS alerts that require coach attention."""

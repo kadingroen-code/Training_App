@@ -2,7 +2,7 @@
 Coach API endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
@@ -14,7 +14,10 @@ router = APIRouter()
 
 
 @router.get("/{coach_id}/athletes")
-async def get_coach_athletes(coach_id: int, db: Session = Depends(get_db)):
+async def get_coach_athletes(
+    coach_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
+):
     """Get all athletes assigned to a coach."""
     # TODO: Implement coach-athlete relationship
     athletes = db.query(User).filter(User.role == "athlete").all()
@@ -23,10 +26,10 @@ async def get_coach_athletes(coach_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{coach_id}/bulk-assign")
 async def bulk_assign_workout(
-    coach_id: int,
-    template_id: int,
-    athlete_ids: List[int],
-    start_date: str,
+    coach_id: int = Path(..., gt=0),
+    template_id: int = Query(..., gt=0),
+    athlete_ids: List[int] = Query(..., min_length=1, description="List of athlete IDs"),
+    start_date: str = Query(..., pattern=r'^\d{4}-\d{2}-\d{2}$', description="Start date in YYYY-MM-DD format"),
     db: Session = Depends(get_db)
 ):
     """Bulk assign a workout template to multiple athletes."""

@@ -15,12 +15,16 @@ app = FastAPI(
 )
 
 # CORS middleware for Next.js frontend
+# In production, restrict methods and headers for security
+cors_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"] if settings.is_production else ["*"]
+cors_headers = ["Content-Type", "Authorization"] if settings.is_production else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=cors_methods,
+    allow_headers=cors_headers,
 )
 
 # Include routers

@@ -2,23 +2,31 @@
 Workout Template API endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.models.workout_template import WorkoutTemplate
 from app.parsers.markdown_parser import MarkdownWorkoutParser
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter()
 
 
 class WorkoutTemplateCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    sport: str
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=1000)
+    sport: str = Field(..., min_length=1, max_length=50)
     logic_json: Optional[dict] = None
-    markdown_source: Optional[str] = None
+    markdown_source: Optional[str] = Field(None, max_length=10000)
+    
+    @field_validator('sport')
+    @classmethod
+    def validate_sport(cls, v: str) -> str:
+        allowed_sports = ['running', 'cycling', 'swimming', 'triathlon']
+        if v.lower() not in allowed_sports:
+            raise ValueError(f"Sport must be one of: {', '.join(allowed_sports)}")
+        return v.lower()
 
 
 class WorkoutTemplateResponse(BaseModel):
@@ -37,7 +45,7 @@ class WorkoutTemplateResponse(BaseModel):
 @router.post("/", response_model=WorkoutTemplateResponse)
 async def create_workout_template(
     template: WorkoutTemplateCreate,
-    coach_id: int,  # TODO: Get from auth token
+    coach_id: int = Query(..., gt=0, description="Coach ID (will be from auth token in production)"),
     db: Session = Depends(get_db)
 ):
     """Create a new workout template."""
@@ -66,7 +74,10 @@ async def create_workout_template(
 
 
 @router.get("/{template_id}", response_model=WorkoutTemplateResponse)
-async def get_workout_template(template_id: int, db: Session = Depends(get_db)):
+async def get_workout_template(
+    template_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
+):
     """Get a workout template by ID."""
     template = db.query(WorkoutTemplate).filter(WorkoutTemplate.id == template_id).first()
     if not template:
@@ -93,8 +104,8 @@ async def list_workout_templates(
 
 @router.post("/{template_id}/resolve")
 async def resolve_workout_template(
-    template_id: int,
-    athlete_id: int,
+    template_id: int = Path(..., gt=0),
+    athlete_id: int = Query(..., gt=0),
     db: Session = Depends(get_db)
 ):
     """Resolve a workout template for a specific athlete."""
