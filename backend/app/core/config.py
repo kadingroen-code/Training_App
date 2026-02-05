@@ -26,8 +26,20 @@ class Settings(BaseSettings):
     # OAuth Providers
     GARMIN_CLIENT_ID: str = ""
     GARMIN_CLIENT_SECRET: str = ""
+    GARMIN_OAUTH_REDIRECT_URI: str = "http://localhost:8000/api/integrations/garmin/oauth/callback"
+    GARMIN_OAUTH_AUTHORIZE_URL: str = "https://connect.garmin.com/oauthConfirm"
+    GARMIN_OAUTH_TOKEN_URL: str = "https://connectapi.garmin.com/oauth-service/oauth/exchange/user/2.0"
+    
     STRAVA_CLIENT_ID: str = ""
     STRAVA_CLIENT_SECRET: str = ""
+    STRAVA_OAUTH_REDIRECT_URI: str = "http://localhost:8000/api/integrations/strava/oauth/callback"
+    STRAVA_OAUTH_AUTHORIZE_URL: str = "https://www.strava.com/oauth/authorize"
+    STRAVA_OAUTH_TOKEN_URL: str = "https://www.strava.com/oauth/token"
+    STRAVA_WEBHOOK_SECRET: str = ""
+    STRAVA_VERIFY_TOKEN: str = ""  # For webhook subscription verification
+    
+    # Token Encryption
+    OAUTH_TOKEN_ENCRYPTION_KEY: str = ""  # Fernet key (32 bytes base64 encoded)
     
     # API Keys
     GARMIN_API_BASE_URL: str = "https://connectapi.garmin.com"
@@ -35,7 +47,12 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
         case_sensitive = True
+        # Allow .env file to be optional (will use defaults if not found)
+        env_ignore_empty = True
+        # Don't fail if .env can't be read (permission issues, etc.)
+        env_file_required = False
     
     @property
     def is_production(self) -> bool:
@@ -48,7 +65,25 @@ class Settings(BaseSettings):
         return self.ENVIRONMENT.lower() == "development"
 
 
-settings = Settings()
+# Initialize settings, handling .env permission issues gracefully
+try:
+    settings = Settings()
+except Exception as e:
+    if "Operation not permitted" in str(e) or ".env" in str(e).lower():
+        # If .env has permission issues, try without it
+        import warnings
+        warnings.warn(
+            f"Could not read .env file: {e}. Using defaults and environment variables only.",
+            UserWarning
+        )
+        # Create settings without .env file
+        class SettingsNoEnv(Settings):
+            class Config:
+                env_file = None  # Don't load .env
+                case_sensitive = True
+        settings = SettingsNoEnv()
+    else:
+        raise
 
 # Production security warnings
 if settings.is_production:

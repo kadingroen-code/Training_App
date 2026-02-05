@@ -7,11 +7,13 @@ from app.models.athlete_profile import AthleteProfile
 from app.models.workout_template import WorkoutTemplate
 from app.models.calendar_event import CalendarEvent
 from app.models.pairs_log import PAIRSLog
+from app.models.oauth_token import OAuthToken
 
 __all__ = [
     "User",
     "AthleteProfile",
     "WorkoutTemplate",
     "CalendarEvent",
-    "PAIRSLog"
+    "PAIRSLog",
+    "OAuthToken"
 ]

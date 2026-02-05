@@ -32,3 +32,4 @@ class User(Base):
     athlete_profile = relationship("AthleteProfile", back_populates="user", uselist=False)
     workout_templates = relationship("WorkoutTemplate", back_populates="coach")
     calendar_events = relationship("CalendarEvent", back_populates="athlete")
+    oauth_tokens_new = relationship("OAuthToken", back_populates="user", cascade="all, delete-orphan")

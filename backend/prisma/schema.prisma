@@ -24,13 +24,14 @@ model User {
   id            Int       @id @default(autoincrement())
   email         String    @unique
   role          UserRole
-  oauthTokens   Json      @default("{}")
+  oauthTokens   Json      @default("{}") // Deprecated - use OAuthToken table
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   athleteProfile   AthleteProfile?
   workoutTemplates WorkoutTemplate[]
   calendarEvents   CalendarEvent[]
+  oauthTokensNew  OAuthToken[]
 }
 
 model AthleteProfile {
@@ -91,4 +92,38 @@ model PAIRSLog {
 
   athlete      User           @relation(fields: [athleteId], references: [id])
   calendarEvent CalendarEvent? @relation(fields: [calendarEventId], references: [id])
+}
+
+model OAuthToken {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  provider        String    // "garmin" | "strava"
+  providerUserId  String?   // Garmin User ID (persistent identifier)
+  
+  // Tokens (encrypted at rest)
+  accessToken     String    @db.Text
+  refreshToken    String?   @db.Text
+  tokenType       String    @default("Bearer")
+  
+  // Expiration tracking
+  expiresAt       DateTime?
+  refreshAt       DateTime? // When to refresh (5 min before expires)
+  
+  // Metadata
+  scopes          String[]  // Requested scopes
+  lastRefreshed   DateTime?
+  refreshCount    Int       @default(0)
+  status          String    @default("active") // "active" | "revoked" | "expired"
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relationships
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, provider])
+  @@index([userId, provider])
+  @@index([expiresAt])
+  @@index([refreshAt])
 }
